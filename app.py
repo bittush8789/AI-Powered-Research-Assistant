@@ -15,3 +15,8 @@ st.title("📚 Virtual Research Assistant")
 groq_api_key = os.getenv("GROQ_API_KEY")
 
 # Check if API key is set, else stop execution
+if not groq_api_key:
+    st.error("GROQ_API_KEY is missing. Please set it in your environment variables.")
+    st.stop()
+
+# Initialize AI Agents for summarization and analysis
