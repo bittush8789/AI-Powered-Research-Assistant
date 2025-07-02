@@ -1,8 +1,9 @@
 # Importing required libraries
-import requests  # For sending HTTP requests to external APIs
-import xml.etree.ElementTree as ET  # For parsing XML responses from ArXiv
-from scholarly import scholarly  # For scraping/searching Google Scholar data
+import requests  # For sending HTTP requests to fetch data from external sources (like ArXiv)
+import xml.etree.ElementTree as ET  # For parsing XML responses (ArXiv returns XML)
+from scholarly import scholarly  # For searching and scraping academic papers from Google Scholar
 
+# Define the DataLoader class which encapsulates methods to fetch research papers
 class DataLoader:
     """
     DataLoader is responsible for fetching academic papers from external sources
@@ -10,39 +11,45 @@ class DataLoader:
     """
 
     def __init__(self):
-        print("DataLoader Init")  # Simple initializer log
+        # Constructor method that prints a message when the class is instantiated
+        print("DataLoader Init")
 
     def fetch_arxiv_papers(self, query):
         """
-        Fetches up to 5 relevant research papers from ArXiv based on a query.
-        If fewer than 5 papers are found, it tries to expand the search using related topics.
-        
+        Fetches up to 5 relevant research papers from ArXiv based on a user query.
+        If fewer than 5 papers are found, the method attempts to expand the search
+        using related research topics suggested by an AI agent (if defined).
+
         Args:
-            query (str): Search keyword/topic
-        
+            query (str): The search term or topic to look for in ArXiv.
+
         Returns:
-            list: A list of dictionaries with paper 'title', 'summary', and 'link'
+            list: A list of dictionaries, each containing 'title', 'summary', and 'link'.
         """
 
+        # Nested helper function to query the ArXiv API
         def search_arxiv(query):
             """
-            Queries the ArXiv API for research papers based on the input query.
-            
+            Internal helper function to search ArXiv for the given query.
+
             Args:
-                query (str): Search keyword
+                query (str): The keyword/topic to search in ArXiv.
 
             Returns:
-                list: Parsed list of paper metadata from XML
+                list: List of paper metadata dictionaries if successful; otherwise an empty list.
             """
-            # Building the API request URL
+            # Construct the API URL with the given query, limiting to 5 results
             url = f"http://export.arxiv.org/api/query?search_query=all:{query}&start=0&max_results=5"
-            response = requests.get(url)  # Send request to ArXiv
 
-            # If request is successful, parse XML response
+            # Make the HTTP GET request to ArXiv API
+            response = requests.get(url)
+
+            # Check for a successful response
             if response.status_code == 200:
-                root = ET.fromstring(response.text)  # Parse XML content
+                # Parse the XML content returned from ArXiv
+                root = ET.fromstring(response.text)
 
-                # Extract relevant fields (title, summary, link) from each entry
+                # Extract relevant information (title, summary, link) from each entry
                 return [
                     {
                         "title": entry.find("{http://www.w3.org/2005/Atom}title").text,
@@ -52,55 +59,64 @@ class DataLoader:
                     for entry in root.findall("{http://www.w3.org/2005/Atom}entry")
                 ]
 
-            # If API call fails, return empty list
+            # Return an empty list if the request failed
             return []
 
-        papers = search_arxiv(query)  # Initial search based on original query
+        # Initial paper search with the user query
+        papers = search_arxiv(query)
 
-        # Check if fewer than 5 papers are returned and if search_agent is defined
+        # If fewer than 5 papers are found and a search agent is defined
         if len(papers) < 5 and hasattr(self, 'search_agent'):
-            # Ask the search agent to suggest related topics to broaden the search
+            # Use the search agent (likely an LLM) to suggest related research topics
             related_topics_response = self.search_agent.generate_reply(
                 messages=[{"role": "user", "content": f"Suggest 3 related research topics for '{query}'"}]
             )
 
-            # Parse agent response – expects a newline-separated list of topics
+            # Extract the text content and split by lines (each line = a related topic)
             related_topics = related_topics_response.get("content", "").split("\n")
 
-            # Loop through related topics and attempt to fetch more papers
+            # Iterate through suggested topics and fetch more papers
             for topic in related_topics:
-                topic = topic.strip()
+                topic = topic.strip()  # Clean whitespace
+
+                # If topic is not empty and we still have <5 papers, search again
                 if topic and len(papers) < 5:
                     new_papers = search_arxiv(topic)
-                    papers.extend(new_papers)
-                    papers = papers[:5]  # Ensure the list doesn’t exceed 5 items
+                    papers.extend(new_papers)  # Add new results to existing list
 
-        return papers  # Final list of up to 5 papers
+                    # Trim the list to ensure we only return max 5 papers
+                    papers = papers[:5]
+
+        # Return the final list of papers
+        return papers
 
     def fetch_google_scholar_papers(self, query):
         """
-        Fetches top 5 research papers from Google Scholar using the `scholarly` package.
-        
-        Args:
-            query (str): Topic or keyword
-        
-        Returns:
-            list: A list of dictionaries with 'title', 'summary', and 'link'
-        """
-        papers = []  # Result list to be returned
+        Fetches the top 5 research papers from Google Scholar using the `scholarly` API.
 
-        # Perform the search using scholarly API
+        Args:
+            query (str): The keyword or topic to search for.
+
+        Returns:
+            list: A list of dictionaries, each containing 'title', 'summary', and 'link'.
+        """
+
+        papers = []  # Initialize the result list
+
+        # Use scholarly to perform the search (returns a generator)
         search_results = scholarly.search_pubs(query)
 
-        # Loop through results and collect paper info (limit to 5)
+        # Iterate through results and collect up to 5 papers
         for i, paper in enumerate(search_results):
             if i >= 5:
-                break  # Stop after collecting 5 papers
+                break  # Stop if we've collected 5 papers
 
+            # Append the paper details to the result list
             papers.append({
-                "title": paper["bib"]["title"],
-                "summary": paper["bib"].get("abstract", "No summary available"),
-                "link": paper.get("pub_url", "No link available")
+                "title": paper["bib"]["title"],  # Title of the paper
+                "summary": paper["bib"].get("abstract", "No summary available"),  # Abstract if available
+                "link": paper.get("pub_url", "No link available")  # Publication link (if any)
             })
 
-        return papers  # Return the collected paper list
+        # Return the final list of papers
+        return papers
