@@ -7,3 +7,4 @@ langchain_groq             # Integrates GROQ features with LangChain
 transformers               # to calculate get_token_ids.
 scholarly
 autogen
+pandas
