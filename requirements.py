@@ -1,4 +1,5 @@
 accelerate==1.3.0
+dotenv
 ag2==0.9.4
 aiofiles==23.2.1
 aiohappyeyeballs==2.4.4
