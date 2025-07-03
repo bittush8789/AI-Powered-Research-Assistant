@@ -22,7 +22,7 @@ class ResearchAgents:
         # Define LLM configuration for Groq API using LLaMA model
         self.llm_config = {
             'config_list': [{
-                'model': 'llama-3.3-70b-versatile',  # LLaMA 3.3 70B model
+                'model': 'deepseek-r1-distill-llama-70b',  # deepseek-r1-distill-llama-70b
                 'api_key': self.groq_api_key,       # Provided API key
                 'api_type': "groq"                  # API provider type
             }]
