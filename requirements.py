@@ -8,3 +8,4 @@ transformers               # to calculate get_token_ids.
 scholarly
 autogen
 pandas
+python-dotenv
