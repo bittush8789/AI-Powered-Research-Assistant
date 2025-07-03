@@ -1,5 +1,6 @@
 
-# Virtual Research Assistant
+# 📚 Virtual Research Assistant
+
 
 A Streamlit-based application designed to assist researchers in discovering, summarizing, and analyzing academic papers on any given topic using AI agents.
 
